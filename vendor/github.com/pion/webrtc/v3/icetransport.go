@@ -1,4 +1,3 @@
-// +build !js
 
 package webrtc
 
@@ -71,6 +70,7 @@ func NewICETransport(gatherer *ICEGatherer, loggerFactory logging.LoggerFactory)
 
 // Start incoming connectivity checks based on its configured role.
 func (t *ICETransport) Start(gatherer *ICEGatherer, params ICEParameters, role *ICERole) error {
+	fmt.Println("Start ICEtransport...")
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -81,6 +81,7 @@ func (t *ICETransport) Start(gatherer *ICEGatherer, params ICEParameters, role *
 	if err := t.ensureGatherer(); err != nil {
 		return err
 	}
+	fmt.Println("ensureGatherer")
 
 	agent := t.gatherer.getAgent()
 	if agent == nil {
@@ -95,6 +96,8 @@ func (t *ICETransport) Start(gatherer *ICEGatherer, params ICEParameters, role *
 	}); err != nil {
 		return err
 	}
+
+	fmt.Println("1")
 	if err := agent.OnSelectedCandidatePairChange(func(local, remote ice.Candidate) {
 		candidates, err := newICECandidatesFromICE([]ice.Candidate{local, remote})
 		if err != nil {
@@ -106,6 +109,7 @@ func (t *ICETransport) Start(gatherer *ICEGatherer, params ICEParameters, role *
 		return err
 	}
 
+	fmt.Println("2")
 	if role == nil {
 		controlled := ICERoleControlled
 		role = &controlled
@@ -114,17 +118,22 @@ func (t *ICETransport) Start(gatherer *ICEGatherer, params ICEParameters, role *
 
 	// Drop the lock here to allow ICE candidates to be
 	// added so that the agent can complete a connection
+	fmt.Println("3")
 	t.lock.Unlock()
+	fmt.Println("4")
 
 	var iceConn *ice.Conn
 	var err error
 	switch *role {
 	case ICERoleControlling:
+		fmt.Println("41")
 		iceConn, err = agent.Dial(context.TODO(),
 			params.UsernameFragment,
 			params.Password)
 
 	case ICERoleControlled:
+		fmt.Println("42")
+		fmt.Printf("%s, %s, %s\n", params.UsernameFragment, params.Password, params.ICELite)
 		iceConn, err = agent.Accept(context.TODO(),
 			params.UsernameFragment,
 			params.Password)
@@ -132,6 +141,7 @@ func (t *ICETransport) Start(gatherer *ICEGatherer, params ICEParameters, role *
 	default:
 		err = errICERoleUnknown
 	}
+	fmt.Println("5")
 
 	// Reacquire the lock to set the connection/mux
 	t.lock.Lock()
@@ -147,6 +157,7 @@ func (t *ICETransport) Start(gatherer *ICEGatherer, params ICEParameters, role *
 		LoggerFactory: t.loggerFactory,
 	}
 	t.mux = mux.NewMux(config)
+	fmt.Println("4")
 
 	return nil
 }
