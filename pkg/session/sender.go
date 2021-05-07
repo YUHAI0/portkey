@@ -1,7 +1,6 @@
 package session
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"github.com/DataDog/zstd"
@@ -56,15 +55,17 @@ func WriteLoopN(streams []*quic.BidirectionalStream, blockNumber int, sendPath s
 			log.Infof("Stream %d Writing %s...\n", i, splitFiles[i])
 			quicgoStream := stream.Detach()
 
-		 	qw := bufio.NewWriter(quicgoStream)
-			_, _ = qw.WriteString(fmt.Sprintf("%d;", i))
-			_ = qw.Flush()
-
-			quicgoStream = stream.Detach()
+		 	//qw := bufio.NewWriter(quicgoStream)
+			//_, _ = qw.WriteString(fmt.Sprintf("%d;", i))
+			//_ = qw.Flush()
+			//
+			//quicgoStream = stream.Detach()
 
 			partialFile, err := os.Open(splitFiles[i])
 
 			zstdWriter := zstd.NewWriter(quicgoStream)
+
+			zstdWriter.Write(utils.IntToBytes(i))
 			bytesWritten, err := io.Copy(zstdWriter, partialFile)
 			if err != nil {
 				log.WithError(err).Errorf("Error in copying from tempfile to zstdWriter in sender stream %d\n", quicgoStream.StreamID())

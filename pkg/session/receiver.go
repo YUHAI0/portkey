@@ -1,7 +1,6 @@
 package session
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -34,22 +33,20 @@ func ReadLoopN(streams []*quic.BidirectionalStream, blockNumber int,receivePath 
 			log.Info("##############")
 			log.Infof("Stream %d reading...\n", i)
 
-			qr := bufio.NewReader(quicgoStream)
-			var index, _ = qr.ReadString(';')
-			index = index[:len(index)-1]
-			log.Infof("Index %s\n", index)
-
 			//tempfile, err := ioutil.TempFile(os.TempDir(), "portkey*")
 			//if err != nil {
 			//	log.WithError(err).Errorf("Error in tempfile creation in receiver stream %d\n", quicgoStream.StreamID())
 			//	return
 			//}
 			//defer os.Remove(tempfile.Name())
-			pName := fmt.Sprintf("partial.%s", index)
-			partialFile, _ := os.OpenFile(pName, os.O_CREATE|os.O_WRONLY, 0600)
-
-
 			zstdReader := zstd.NewReader(quicgoStream)
+			var intBytes []byte = make([]byte, 8)
+			_, _ = zstdReader.Read(intBytes)
+			var index = utils.BytesToInt(intBytes)
+			log.Infof("Read index %d\n", utils.BytesToInt(intBytes))
+
+			pName := fmt.Sprintf("partial.%d", index)
+			partialFile, _ := os.OpenFile(pName, os.O_CREATE|os.O_WRONLY, 0600)
 			bytesWritten, err := io.Copy(partialFile, zstdReader)
 
 			log.Infof("%s index %s, file has %d bytes\n", partialFile.Name(), index, bytesWritten)
